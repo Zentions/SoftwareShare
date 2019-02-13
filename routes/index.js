@@ -22,7 +22,7 @@ if(!connected){
 
 let localAddress = web3.eth.accounts[0];
 
-let address = "0x7cb95a98370822d20d4cf75a7032abdaa5f14ca3";
+let address = "0xae3df26da4e8977d8d12af8d443cdf88efa7ab02";
 //合约部署，已经在geth客户端中部署过，现在直接找到地址就可以部署
 let abi = [
   {
@@ -246,6 +246,83 @@ let abi = [
   },
   {
     "constant": true,
+    "inputs": [
+      {
+        "name": "index",
+        "type": "uint256"
+      }
+    ],
+    "name": "fetchUser",
+    "outputs": [
+      {
+        "name": "",
+        "type": "address"
+      },
+      {
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [
+      {
+        "name": "name",
+        "type": "string"
+      }
+    ],
+    "name": "fetchUserBySoftware",
+    "outputs": [
+      {
+        "name": "findAddressLen",
+        "type": "uint256"
+      },
+      {
+        "name": "addresses",
+        "type": "address[50]"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [
+      {
+        "name": "add",
+        "type": "address"
+      }
+    ],
+    "name": "fetchUserInfo",
+    "outputs": [
+      {
+        "name": "",
+        "type": "string"
+      },
+      {
+        "name": "",
+        "type": "string"
+      },
+      {
+        "name": "",
+        "type": "string"
+      },
+      {
+        "name": "",
+        "type": "uint8"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
     "inputs": [],
     "name": "getOwner",
     "outputs": [
@@ -356,6 +433,20 @@ let abi = [
       {
         "name": "",
         "type": "bool"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [],
+    "name": "searchUserLength",
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256"
       }
     ],
     "payable": false,
@@ -487,10 +578,9 @@ router.post('/storeSoftware',function(request,res,next){
    console.log(storeSoftwareTrans);
    res.json({success:true,date:date,start:start,name:name,score:"100"});
 });
-//function getSoftWareLenth() public view returns(uint trueLen,uint falseLen)
-router.get('/getSoftware',function(request,res,next){
-    var address = request.query.address;
-    let getSoftwareTrans = Share.getSoftWareLenth(address);
+
+function getSoftwareByAddress(address){
+  let getSoftwareTrans = Share.getSoftWareLenth(address);
     var trueLen = new BigNumber(getSoftwareTrans[0]);
     var falseLen = new BigNumber(getSoftwareTrans[1]);
     var entity = {};
@@ -510,7 +600,14 @@ router.get('/getSoftware',function(request,res,next){
       }
     }
    entity["sw"] = sw_array;
-   res.json(entity);
+   return entity;
+}
+
+//function getSoftWareLenth() public view returns(uint trueLen,uint falseLen)
+router.get('/getSoftware',function(request,res,next){
+  var address = request.query.address;
+  var softwares = getSoftwareByAddress(address);
+  res.json(softwares);
 });
 
 //deleteSoftWare
@@ -539,4 +636,34 @@ router.post('/modifyPass',function(request,res,next){
      res.json({success:true});
 });
 
+//getUserPass
+router.get('/getShareUser',function(request,res,next){
+    var len = Share.searchUserLength();
+    var address_array = [];
+    for(var i=0;i<len;i++){
+      var user = Share.fetchUser(i);
+      if(user[1]) address_array.push(user[0]);
+    }
+    res.json({success:true,users:address_array});
+});
+
+router.get('/getShareUserBySoftware',function(request,res,next){
+  var swName = request.query.name;
+  console.log(swName);  
+  var user = Share.fetchUserBySoftware(swName);
+  var length = user[0];
+  var userAddress = [];
+  for(var i=0;i<length;i++){
+      userAddress.push(user[1][i])
+  }
+  res.json({success:true,len:user[0],users:userAddress});
+});
+
+//ShareUserInfo
+router.get('/getShareUserInfo',function(request,res,next){
+    var address = request.query.address;
+    var UserInfo = Share.fetchUserInfo(address);
+    var softwares = getSoftwareByAddress(address);
+    res.json({success:true,address:address,mac:UserInfo[0],ip:UserInfo[1],pass:UserInfo[2],score:UserInfo[3],sws:softwares});
+});
 module.exports = router;
