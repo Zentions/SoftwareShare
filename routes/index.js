@@ -22,7 +22,7 @@ if(!connected){
 
 let localAddress = web3.eth.accounts[0];
 
-let address = "0xae3df26da4e8977d8d12af8d443cdf88efa7ab02";
+let address = "0x5d474aa38fbd02ed3bd3c4df84ddbe7ac84dedda";
 //合约部署，已经在geth客户端中部署过，现在直接找到地址就可以部署
 let abi = [
   {
@@ -52,16 +52,16 @@ let abi = [
     "constant": false,
     "inputs": [
       {
-        "name": "index",
-        "type": "uint256"
+        "name": "key",
+        "type": "string"
       },
       {
         "name": "end_timestap",
-        "type": "string"
+        "type": "uint256"
       },
       {
         "name": "total_time",
-        "type": "string"
+        "type": "uint256"
       },
       {
         "name": "money",
@@ -78,6 +78,10 @@ let abi = [
     "constant": false,
     "inputs": [
       {
+        "name": "key",
+        "type": "string"
+      },
+      {
         "name": "server_mac",
         "type": "string"
       },
@@ -90,10 +94,6 @@ let abi = [
         "type": "address"
       },
       {
-        "name": "start_timestap",
-        "type": "string"
-      },
-      {
         "name": "client_mac",
         "type": "string"
       },
@@ -104,15 +104,14 @@ let abi = [
       {
         "name": "client_address",
         "type": "address"
-      }
-    ],
-    "name": "firstStoreRecord",
-    "outputs": [
+      },
       {
-        "name": "",
+        "name": "start_timestap",
         "type": "uint256"
       }
     ],
+    "name": "firstStoreRecord",
+    "outputs": [],
     "payable": false,
     "stateMutability": "nonpayable",
     "type": "function"
@@ -339,6 +338,37 @@ let abi = [
     "constant": true,
     "inputs": [
       {
+        "name": "key",
+        "type": "string"
+      }
+    ],
+    "name": "getRecordByKey",
+    "outputs": [
+      {
+        "name": "server_mac",
+        "type": "string"
+      },
+      {
+        "name": "server_ip",
+        "type": "string"
+      },
+      {
+        "name": "server_address",
+        "type": "address"
+      },
+      {
+        "name": "start_timestap",
+        "type": "uint256"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [
+      {
         "name": "add",
         "type": "address"
       },
@@ -447,49 +477,6 @@ let abi = [
       {
         "name": "",
         "type": "uint256"
-      }
-    ],
-    "payable": false,
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "constant": true,
-    "inputs": [
-      {
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "name": "users",
-    "outputs": [
-      {
-        "name": "u_address",
-        "type": "address"
-      },
-      {
-        "name": "score",
-        "type": "uint8"
-      },
-      {
-        "name": "name",
-        "type": "string"
-      },
-      {
-        "name": "pass",
-        "type": "string"
-      },
-      {
-        "name": "server_mac",
-        "type": "string"
-      },
-      {
-        "name": "server_ip",
-        "type": "string"
-      },
-      {
-        "name": "isShare",
-        "type": "bool"
       }
     ],
     "payable": false,
@@ -666,4 +653,37 @@ router.get('/getShareUserInfo',function(request,res,next){
     var softwares = getSoftwareByAddress(address);
     res.json({success:true,address:address,mac:UserInfo[0],ip:UserInfo[1],pass:UserInfo[2],score:UserInfo[3],sws:softwares});
 });
+
+
+router.post('/firstStoreRecord',function(request,res,next){
+   var server_mac = request.body.server_mac;
+   var server_ip = request.body.server_ip;
+   var server_address = request.body.server_address;
+   var start_timestap = request.body.start_timestap;
+   var client_mac = request.body.client_mac;
+   var client_ip = request.body.client_ip;
+   var client_address = request.body.client_address;
+   console.log(parseInt(start_timestap));
+   console.log(start_timestap);
+   console.log(client_address);
+   var key = client_address+start_timestap;
+   console.log(key);
+   Share.firstStoreRecord.sendTransaction(key,server_mac,server_ip,server_address,client_mac,client_ip,client_address,parseInt(start_timestap),{from:client_address, gas:216846});
+   res.json({success:true,address:server_address});
+});
+
+router.post('/endStoreRecord',function(request,res,next){
+   var money = request.body.money;
+   var total_time = request.body.total_time;
+   var start_timestap = request.body.start_timestap;
+   var end_timestap = request.body.end_timestap;
+   var client_address = request.body.client_address;
+   console.log(parseInt(start_timestap));
+   console.log(client_address);
+   var key = client_address+start_timestap;
+   console.log(key);
+   Share.endStoreRecord.sendTransaction(key,parseInt(end_timestap),parseInt(total_time),parseInt(money),{from:client_address, gas:216846});
+   res.json({success:true});
+});
+
 module.exports = router;
