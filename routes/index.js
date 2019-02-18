@@ -22,7 +22,7 @@ if(!connected){
 
 let localAddress = web3.eth.accounts[0];
 
-let address = "0x5d474aa38fbd02ed3bd3c4df84ddbe7ac84dedda";
+let address = "0xc8cd7fc633f5e48e09ecade3b19ee7bcd3d4d9d1";
 //合约部署，已经在geth客户端中部署过，现在直接找到地址就可以部署
 let abi = [
   {
@@ -241,6 +241,25 @@ let abi = [
     "outputs": [],
     "payable": false,
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [
+      {
+        "name": "key",
+        "type": "string"
+      }
+    ],
+    "name": "canUseNow",
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
     "type": "function"
   },
   {
@@ -685,5 +704,9 @@ router.post('/endStoreRecord',function(request,res,next){
    Share.endStoreRecord.sendTransaction(key,parseInt(end_timestap),parseInt(total_time),parseInt(money),{from:client_address, gas:216846});
    res.json({success:true});
 });
-
+router.get('/canUseNow',function(request,res,next){
+    var key = request.query.key;
+    var canUse = Share.canUseNow(key);
+    res.json({success:true,use:canUse});
+});
 module.exports = router;
