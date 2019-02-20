@@ -685,7 +685,7 @@ router.post('/firstStoreRecord',function(request,res,next){
    console.log(parseInt(start_timestap));
    console.log(start_timestap);
    console.log(client_address);
-   var key = client_address+start_timestap;
+   var key = server_address+start_timestap;
    console.log(key);
    Share.firstStoreRecord.sendTransaction(key,server_mac,server_ip,server_address,client_mac,client_ip,client_address,parseInt(start_timestap),{from:client_address, gas:216846});
    res.json({success:true,address:server_address});
@@ -696,10 +696,11 @@ router.post('/endStoreRecord',function(request,res,next){
    var total_time = request.body.total_time;
    var start_timestap = request.body.start_timestap;
    var end_timestap = request.body.end_timestap;
+   var server_address = request.body.server_address;
    var client_address = request.body.client_address;
    console.log(parseInt(start_timestap));
-   console.log(client_address);
-   var key = client_address+start_timestap;
+   console.log(server_address);
+   var key = server_address+start_timestap;
    console.log(key);
    Share.endStoreRecord.sendTransaction(key,parseInt(end_timestap),parseInt(total_time),parseInt(money),{from:client_address, gas:216846});
    res.json({success:true});
