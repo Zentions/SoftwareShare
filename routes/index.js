@@ -22,9 +22,27 @@ if(!connected){
 
 let localAddress = web3.eth.accounts[0];
 
-let address = "0xc8cd7fc633f5e48e09ecade3b19ee7bcd3d4d9d1";
+let address = "0x5d39debe912d79f4f23e1c285f28e72f15abf36e";
 //合约部署，已经在geth客户端中部署过，现在直接找到地址就可以部署
 let abi = [
+  {
+    "constant": false,
+    "inputs": [
+      {
+        "name": "key",
+        "type": "string"
+      },
+      {
+        "name": "server_address",
+        "type": "address"
+      }
+    ],
+    "name": "continueToPay",
+    "outputs": [],
+    "payable": true,
+    "stateMutability": "payable",
+    "type": "function"
+  },
   {
     "constant": false,
     "inputs": [
@@ -54,6 +72,10 @@ let abi = [
       {
         "name": "key",
         "type": "string"
+      },
+      {
+        "name": "server_address",
+        "type": "address"
       },
       {
         "name": "end_timestap",
@@ -112,8 +134,8 @@ let abi = [
     ],
     "name": "firstStoreRecord",
     "outputs": [],
-    "payable": false,
-    "stateMutability": "nonpayable",
+    "payable": true,
+    "stateMutability": "payable",
     "type": "function"
   },
   {
@@ -140,53 +162,13 @@ let abi = [
       {
         "name": "server_ip",
         "type": "string"
+      },
+      {
+        "name": "moneyPerHour",
+        "type": "uint256"
       }
     ],
     "name": "pendShare",
-    "outputs": [],
-    "payable": false,
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "constant": false,
-    "inputs": [
-      {
-        "name": "inter",
-        "type": "string"
-      }
-    ],
-    "name": "replaceInterest",
-    "outputs": [],
-    "payable": false,
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "constant": false,
-    "inputs": [
-      {
-        "name": "inter1",
-        "type": "string"
-      },
-      {
-        "name": "inter2",
-        "type": "string"
-      },
-      {
-        "name": "inter3",
-        "type": "string"
-      },
-      {
-        "name": "inter4",
-        "type": "string"
-      },
-      {
-        "name": "inter5",
-        "type": "string"
-      }
-    ],
-    "name": "storeInterest",
     "outputs": [],
     "payable": false,
     "stateMutability": "nonpayable",
@@ -333,6 +315,29 @@ let abi = [
       {
         "name": "",
         "type": "uint8"
+      },
+      {
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [
+      {
+        "name": "add",
+        "type": "address"
+      }
+    ],
+    "name": "getMoneyPerHour",
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256"
       }
     ],
     "payable": false,
@@ -377,6 +382,10 @@ let abi = [
       },
       {
         "name": "start_timestap",
+        "type": "uint256"
+      },
+      {
+        "name": "money",
         "type": "uint256"
       }
     ],
@@ -477,6 +486,52 @@ let abi = [
         "type": "address"
       }
     ],
+    "name": "getUserState",
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool"
+      },
+      {
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [
+      {
+        "name": "server_address",
+        "type": "address"
+      },
+      {
+        "name": "client_address",
+        "type": "address"
+      }
+    ],
+    "name": "hasEnoughMoney",
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [
+      {
+        "name": "add",
+        "type": "address"
+      }
+    ],
     "name": "isUserRegister",
     "outputs": [
       {
@@ -504,7 +559,7 @@ let abi = [
   }
 ];
 let Share = web3.eth.contract(abi).at(address);
-let user = new Map();
+let userMap = new Map();
 
 router.get('/', function(req, res, next) {
   res.render('index', { title: 'Express' });
@@ -518,14 +573,19 @@ router.post('/login', function(req, res, next) {
     //console.log(isSuccess);
    if(isSuccess==true){
       var isUserRegister = Share.isUserRegister(address);
-      user.set(address,pass);
-      res.json({success:isSuccess,Register:isUserRegister});
+      userMap.set(address,pass);
+      var userState = Share.getUserState(address);
+      res.json({success:isSuccess,Register:isUserRegister,isShare:userState[0]});
     }
     else{
       res.json({success:false});
     }
 });
-
+function unlockAccount(address){
+  var pass = userMap.get(address);
+  console.log(pass);
+  web3.personal.unlockAccount(address,pass);
+}
 router.get('/a', function(req, res, next) {
   var test = {json:"tttt",tt:"444"} 
   res.json(test);
@@ -536,9 +596,12 @@ router.post('/startService',function(request,res,next){
     var address = request.body.address;
     var ip = request.body.ip;
     var mac = request.body.mac;
+    var moneyPerHour = request.body.moneyPerHour;
+    var amount = web3.toWei(moneyPerHour, 'ether');
     console.log(request.body.ip);
     console.log(request.body.mac);
-    let startServiceTrans = Share.pendShare.sendTransaction( mac,ip, {from:address, gas:216846});
+    console.log(amount);
+    let startServiceTrans = Share.pendShare.sendTransaction( mac,ip,amount, {from:address, gas:216846});
     console.log(startServiceTrans);
     res.json({success:true});
 });
@@ -546,9 +609,16 @@ router.post('/startService',function(request,res,next){
 router.post('/endService',function(request,res,next){
     var address = request.body.address;
     console.log(request.body.address);
-    let endServiceTrans = Share.endShare.sendTransaction( {from:address, gas:216846});
-    console.log(endServiceTrans);
-    res.json({success:true});
+    var userState = Share.getUserState(address);
+    if(userState[1]>0){
+       res.json({success:true,count:userState[1]});
+    }
+    else{
+      let endServiceTrans = Share.endShare.sendTransaction( {from:address, gas:216846});
+      console.log(endServiceTrans);
+      res.json({success:true,count:userState[1]});
+    }
+    
 });
 router.get('/accounts', function(req, res, next) {
   var account = web3.eth.accounts;
@@ -670,7 +740,8 @@ router.get('/getShareUserInfo',function(request,res,next){
     var address = request.query.address;
     var UserInfo = Share.fetchUserInfo(address);
     var softwares = getSoftwareByAddress(address);
-    res.json({success:true,address:address,mac:UserInfo[0],ip:UserInfo[1],pass:UserInfo[2],score:UserInfo[3],sws:softwares});
+    var moneyPerHour = web3.fromWei(UserInfo[4], 'ether');
+    res.json({success:true,address:address,mac:UserInfo[0],ip:UserInfo[1],pass:UserInfo[2],score:UserInfo[3],money:moneyPerHour,sws:softwares});
 });
 
 
@@ -682,13 +753,19 @@ router.post('/firstStoreRecord',function(request,res,next){
    var client_mac = request.body.client_mac;
    var client_ip = request.body.client_ip;
    var client_address = request.body.client_address;
-   console.log(parseInt(start_timestap));
-   console.log(start_timestap);
-   console.log(client_address);
-   var key = server_address+start_timestap;
-   console.log(key);
-   Share.firstStoreRecord.sendTransaction(key,server_mac,server_ip,server_address,client_mac,client_ip,client_address,parseInt(start_timestap),{from:client_address, gas:216846});
-   res.json({success:true,address:server_address});
+   var money = request.body.money;
+   var amount = web3.toWei(money, 'ether');
+   console.log(amount);
+   var enough = Share.hasEnoughMoney(server_address,client_address);
+   if(enough){
+    var key = client_address+start_timestap;
+    console.log(key);
+    Share.firstStoreRecord.sendTransaction(key,server_mac,server_ip,server_address,client_mac,client_ip,client_address,parseInt(start_timestap),{from:client_address,value:amount, gas:300000});
+    res.json({success:true,isEnough:enough,address:server_address});
+   }else{
+     res.json({success:true,isEnough:enough,address:server_address});
+   }
+   
 });
 
 router.post('/endStoreRecord',function(request,res,next){
@@ -700,14 +777,42 @@ router.post('/endStoreRecord',function(request,res,next){
    var client_address = request.body.client_address;
    console.log(parseInt(start_timestap));
    console.log(server_address);
-   var key = server_address+start_timestap;
+   var key = client_address+start_timestap;
    console.log(key);
-   Share.endStoreRecord.sendTransaction(key,parseInt(end_timestap),parseInt(total_time),parseInt(money),{from:client_address, gas:216846});
+   unlockAccount(client_address);
+   Share.endStoreRecord.sendTransaction(key,server_address,parseInt(end_timestap),parseInt(total_time),parseInt(money),{from:client_address, gas:216846});
    res.json({success:true});
 });
 router.get('/canUseNow',function(request,res,next){
     var key = request.query.key;
     var canUse = Share.canUseNow(key);
     res.json({success:true,use:canUse});
+});
+
+//getUserState
+router.get('/getUserState',function(request,res,next){
+    var address = request.query.address;
+    var userState = Share.getUserState(address);
+    res.json({success:true,isShare:userState[0],count:userState[1]});
+});
+
+//continueToPay
+router.post('/continueToPay',function(request,res,next){
+   var server_address = request.body.server_address;
+   var client_address = request.body.client_address;
+   var key = request.body.key;
+   var money = request.body.money;
+   var amount = web3.toWei(money, 'ether');
+   console.log(amount);
+   var enough = Share.hasEnoughMoney(server_address,client_address);
+   if(enough){
+    console.log(key);
+    unlockAccount(client_address);
+    Share.continueToPay.sendTransaction(key,server_address,{from:client_address,value:amount, gas:300000});
+    res.json({success:true,isEnough:enough,address:server_address});
+   }else{
+     res.json({success:true,isEnough:enough,address:server_address});
+   }
+   
 });
 module.exports = router;
