@@ -22,7 +22,7 @@ if(!connected){
 
 let localAddress = web3.eth.accounts[0];
 
-let address = "0x5d39debe912d79f4f23e1c285f28e72f15abf36e";
+let address = "0xbf282f0e4bca86b7c35e01a0efa634b0eec4a3cc";
 //合约部署，已经在geth客户端中部署过，现在直接找到地址就可以部署
 let abi = [
   {
@@ -47,8 +47,8 @@ let abi = [
     "constant": false,
     "inputs": [
       {
-        "name": "name",
-        "type": "string"
+        "name": "index",
+        "type": "uint256"
       }
     ],
     "name": "deleteSoftWare",
@@ -215,11 +215,19 @@ let abi = [
     "constant": false,
     "inputs": [
       {
-        "name": "score",
-        "type": "uint256"
+        "name": "server_address",
+        "type": "address"
+      },
+      {
+        "name": "indexs",
+        "type": "uint256[]"
+      },
+      {
+        "name": "scores",
+        "type": "uint256[]"
       }
     ],
-    "name": "updateUserScore",
+    "name": "updateScore",
     "outputs": [],
     "payable": false,
     "stateMutability": "nonpayable",
@@ -314,7 +322,7 @@ let abi = [
       },
       {
         "name": "",
-        "type": "uint8"
+        "type": "uint256"
       },
       {
         "name": "",
@@ -338,20 +346,6 @@ let abi = [
       {
         "name": "",
         "type": "uint256"
-      }
-    ],
-    "payable": false,
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "constant": true,
-    "inputs": [],
-    "name": "getOwner",
-    "outputs": [
-      {
-        "name": "",
-        "type": "address"
       }
     ],
     "payable": false,
@@ -425,7 +419,7 @@ let abi = [
       },
       {
         "name": "",
-        "type": "uint8"
+        "type": "uint256"
       },
       {
         "name": "",
@@ -581,16 +575,19 @@ router.post('/login', function(req, res, next) {
       res.json({success:false});
     }
 });
+
 function unlockAccount(address){
   var pass = userMap.get(address);
   console.log(pass);
   web3.personal.unlockAccount(address,pass);
 }
-router.get('/a', function(req, res, next) {
-  var test = {json:"tttt",tt:"444"} 
-  res.json(test);
-});
 
+router.post('/unlock', function(req, res, next) {
+    var address = req.body.address;
+    console.log(address);
+    unlockAccount(address);
+    res.json({success:true});
+});
 
 router.post('/startService',function(request,res,next){
     var address = request.body.address;
@@ -650,9 +647,11 @@ router.post('/storeSoftware',function(request,res,next){
    console.log(name);
    console.log(start);
    console.log(address);
+   var getSoftwareTrans = Share.getSoftWareLenth(address);
+   var falseLen = new BigNumber(getSoftwareTrans[1]);
    let storeSoftwareTrans = Share.storeSoftWare.sendTransaction( date,name,start,{from:address, gas:216846});
    console.log(storeSoftwareTrans);
-   res.json({success:true,date:date,start:start,name:name,score:"100"});
+   res.json({success:true,index:falseLen.toString(),date:date,start:start,name:name,score:"100"});
 });
 
 function getSoftwareByAddress(address){
@@ -668,6 +667,7 @@ function getSoftwareByAddress(address){
       var _sw = Share.getSoftWare(address,i);
       var sw = {};
       if(_sw[0]) {
+        sw.index = i;
         sw.date = _sw[2];
         sw.name = _sw[3];
         sw.score = _sw[4].toString();
@@ -689,10 +689,10 @@ router.get('/getSoftware',function(request,res,next){
 //deleteSoftWare
 router.post('/deleteSoftWare',function(request,res,next){
    var address = request.body.address;
-   var name = request.body.name;
-    let deleteSoftWareTrans = Share.deleteSoftWare.sendTransaction( name,{from:address, gas:216846});
+   var index = request.body.index;
+    let deleteSoftWareTrans = Share.deleteSoftWare.sendTransaction(index,{from:address, gas:216846});
     console.log(deleteSoftWareTrans);
-     res.json({success:true,_name:name});
+     res.json({success:true,_index:index});
 });
 
 //getUserPass
@@ -779,7 +779,6 @@ router.post('/endStoreRecord',function(request,res,next){
    console.log(server_address);
    var key = client_address+start_timestap;
    console.log(key);
-   unlockAccount(client_address);
    Share.endStoreRecord.sendTransaction(key,server_address,parseInt(end_timestap),parseInt(total_time),parseInt(money),{from:client_address, gas:216846});
    res.json({success:true});
 });
@@ -807,12 +806,28 @@ router.post('/continueToPay',function(request,res,next){
    var enough = Share.hasEnoughMoney(server_address,client_address);
    if(enough){
     console.log(key);
-    unlockAccount(client_address);
     Share.continueToPay.sendTransaction(key,server_address,{from:client_address,value:amount, gas:300000});
     res.json({success:true,isEnough:enough,address:server_address});
    }else{
      res.json({success:true,isEnough:enough,address:server_address});
    }
    
+});
+
+router.post('/undateScore',function(request,res,next){
+   var data = request.body.data;
+   var server_address = request.body.server_address;
+   var client_address = request.body.client_address;
+   console.log(data);
+   var indexs=[];
+   var scores = [];
+   var list = data.split(";");
+   for(var i=0;i<list.length;i++){
+     var iAndS = list[i].split(":");
+     indexs.push(parseInt(iAndS[0]));
+     scores.push(parseInt(iAndS[1]));
+   }
+   Share.updateScore.sendTransaction(server_address,indexs,scores,{from:client_address, gas:216846});
+   res.json({success:true});
 });
 module.exports = router;
