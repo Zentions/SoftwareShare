@@ -22,9 +22,9 @@ if(!connected){
 
 let localAddress = web3.eth.accounts[0];
 
-let address = "0xbf282f0e4bca86b7c35e01a0efa634b0eec4a3cc";
+let address = "0x32de473d8ffe50a1ceb966fa63a3d6cc0a9a00fc";
 //合约部署，已经在geth客户端中部署过，现在直接找到地址就可以部署
-let abi = [
+let abi =[
   {
     "constant": false,
     "inputs": [
@@ -166,6 +166,14 @@ let abi = [
       {
         "name": "moneyPerHour",
         "type": "uint256"
+      },
+      {
+        "name": "cpu",
+        "type": "string"
+      },
+      {
+        "name": "size",
+        "type": "string"
       }
     ],
     "name": "pendShare",
@@ -327,6 +335,14 @@ let abi = [
       {
         "name": "",
         "type": "uint256"
+      },
+      {
+        "name": "",
+        "type": "string"
+      },
+      {
+        "name": "",
+        "type": "string"
       }
     ],
     "payable": false,
@@ -595,10 +611,12 @@ router.post('/startService',function(request,res,next){
     var mac = request.body.mac;
     var moneyPerHour = request.body.moneyPerHour;
     var amount = web3.toWei(moneyPerHour, 'ether');
-    console.log(request.body.ip);
+    var cpu = request.body.cpu;
+    var size = request.body.size;
+    console.log(request.body.cpu);
     console.log(request.body.mac);
     console.log(amount);
-    let startServiceTrans = Share.pendShare.sendTransaction( mac,ip,amount, {from:address, gas:216846});
+    let startServiceTrans = Share.pendShare.sendTransaction( mac,ip,amount,cpu,size, {from:address, gas:216846});
     console.log(startServiceTrans);
     res.json({success:true});
 });
@@ -633,7 +651,7 @@ router.post('/newAccount',function(request,res,next){
 router.post('/register',function(request,res,next){
   var address = request.body.address;
   console.log(address);
-  var registorTrans = Share.storeUser.sendTransaction({from:address, gas:216846});
+  var registorTrans = Share.storeUser.sendTransaction({from:address, gas:300000});
   console.log(registorTrans);
   res.json({success:true});
 });
@@ -741,7 +759,7 @@ router.get('/getShareUserInfo',function(request,res,next){
     var UserInfo = Share.fetchUserInfo(address);
     var softwares = getSoftwareByAddress(address);
     var moneyPerHour = web3.fromWei(UserInfo[4], 'ether');
-    res.json({success:true,address:address,mac:UserInfo[0],ip:UserInfo[1],pass:UserInfo[2],score:UserInfo[3],money:moneyPerHour,sws:softwares});
+    res.json({success:true,cpu:UserInfo[5],size:UserInfo[6],address:address,mac:UserInfo[0],ip:UserInfo[1],pass:UserInfo[2],score:UserInfo[3],money:moneyPerHour,sws:softwares});
 });
 
 
